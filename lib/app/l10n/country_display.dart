@@ -1,6 +1,3 @@
-// 발췌: lib/app/l10n/country_display.dart
-// (import 경로는 원본 레포 기준이라 그대로 컴파일되지 않습니다.)
-
 import 'package:country_picker/country_picker.dart';
 import 'package:flutter/widgets.dart';
 
@@ -32,4 +29,45 @@ String? effectiveCountryCode(
     return vc;
   }
   return canonicalCountryForActiveLocale(context);
+}
+
+String? localizedCountryName(BuildContext context, String countryCode) {
+  final trimmedCode = countryCode.trim();
+  if (trimmedCode.isEmpty) {
+    return null;
+  }
+
+  final localized = CountryLocalizations.of(
+    context,
+  )?.countryName(countryCode: trimmedCode);
+  if (localized != null && localized.trim().isNotEmpty) {
+    return localized.trim();
+  }
+
+  final parsedCountry = CountryParser.tryParseCountryCode(trimmedCode);
+  if (parsedCountry != null && parsedCountry.name.trim().isNotEmpty) {
+    return parsedCountry.name.trim();
+  }
+  return null;
+}
+
+String? localizedCountryLabel(
+  BuildContext context,
+  String countryCode, {
+  bool includeFlagEmoji = false,
+}) {
+  final name = localizedCountryName(context, countryCode);
+  if (name == null || name.isEmpty) {
+    return null;
+  }
+
+  if (!includeFlagEmoji) {
+    return name;
+  }
+
+  final flagEmoji = CountryParser.tryParseCountryCode(countryCode)?.flagEmoji;
+  if (flagEmoji == null || flagEmoji.isEmpty) {
+    return name;
+  }
+  return '$flagEmoji $name';
 }

@@ -1,5 +1,11 @@
-// 발췌: functions/public_journal_index.js
-// (require 경로 등은 원본 레포 기준이라 그대로 실행되지 않습니다.)
+// 부분 발췌본입니다. 원본 functions/public_journal_index.js 는 인덱스 문서
+// 관련 CF/헬퍼 전체를 담고 있으며, 이 쇼케이스와 무관한 부분은 뺐습니다.
+// require 경로도 원본 레포 기준이라 이 파일만으로는 실행되지 않습니다.
+//
+// 여기 남긴 것: 인덱스 array 를 read-modify-write 하는 공통 유틸과, entry
+// 하나를 patch 하며 updatedAt 을 stamp 하는 함수. 관리자 페이지에서 AI
+// 일기를 수정했을 때도 이 함수 하나만 호출하면, 클라는 별도의 "무효화
+// 알림" 없이 updatedAt 비교만으로 staleness 를 감지한다.
 
 // app_config/{indexDocId} 의 array 필드를 read-modify-write 하는 공통 트랜잭션
 // 패턴. mutate 가 다음 list 를 반환하면 tx.set, null/undefined 반환하면 skip.
@@ -43,7 +49,7 @@ async function patchEntryInPublicIndex({
       : existing.visibleUntil;
     // 배열 안에서는 serverTimestamp() sentinel 사용 불가 → 호출 시점의
     // 서버 clock 값을 직접 읽어 stamp. 클라는 이 값을 로컬 cachedAt 과
-    // 비교해 staleness 를 판정한다 (03 참고).
+    // 비교해 staleness 를 판정한다 (journal_service.dart 참고).
     const updatedAt = admin.firestore.Timestamp.now();
     const patched = {
       ...existing,

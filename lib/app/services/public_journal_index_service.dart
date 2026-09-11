@@ -1,6 +1,3 @@
-// 발췌: lib/app/services/public_journal_index_service.dart
-// (import 경로 등은 원본 레포 기준이라 그대로 컴파일되지 않습니다.)
-
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -49,15 +46,25 @@ class FirebasePublicJournalIndexService implements PublicJournalIndexService {
     try {
       final cachedAt = await _dao.latestCachedAt();
       final now = DateTime.now();
+      debugPrint(
+        'PublicJournalIndexService.ensureCached: cache cachedAt=$cachedAt',
+      );
       if (cachedAt != null && now.difference(cachedAt) < _cacheTtl) {
-        return; // 캐시 신선 — no-op.
+        debugPrint('PublicJournalIndexService.ensureCached: skip (fresh)');
+        return;
       }
-
+      debugPrint(
+        'PublicJournalIndexService.ensureCached: fetching $_indexDocId from Firestore',
+      );
       final snap = await FirestorePaths.appConfig(
         _firestore,
       ).doc(_indexDocId).get();
-      if (!snap.exists) return;
-
+      if (!snap.exists) {
+        debugPrint(
+          'PublicJournalIndexService.ensureCached: doc missing — skip',
+        );
+        return;
+      }
       final data = snap.data() ?? <String, dynamic>{};
       final list = (data[_arrayField] as List<dynamic>?) ?? const [];
 
@@ -108,18 +115,25 @@ class FirebasePublicJournalIndexService implements PublicJournalIndexService {
       }
 
       await _dao.replaceAll(finalRows);
+      debugPrint(
+        'PublicJournalIndexService.ensureCached: replaced drift rows=${finalRows.length}',
+      );
 
       // lastViewedEntryId 가 병합 결과에서 사라졌으면, 안 본 첫 entry 로 갱신해
-      // 다음 복원이 unread 첫 entry 로 떨어지게 함.
+      // 다음 복원이 unread 첫 entry 로 떨어지게 함 (edge case 2).
       if (lastViewedEntryId != null &&
           !newRowsByEntryId.containsKey(lastViewedEntryId)) {
         final survived = ordered.toSet();
+        // 병합 결과에서 첫번째 "원래 새 인덱스 순서" 항목 = unreadEntry 첫번째.
         final fallback = newOrder.firstWhere(
           (id) => survived.contains(id),
           orElse: () => '',
         );
         if (fallback.isNotEmpty) {
           await _lastViewed.save(fallback);
+          debugPrint(
+            'PublicJournalIndexService.ensureCached: lastViewed reset to first unread=$fallback',
+          );
         }
       }
     } catch (error, stackTrace) {

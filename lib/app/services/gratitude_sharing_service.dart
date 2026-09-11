@@ -1,5 +1,10 @@
-// 발췌: lib/app/services/gratitude_sharing_service.dart
-// (import 경로, 클래스 선언부 등은 원본 레포 기준이라 그대로 컴파일되지 않습니다.)
+// 부분 발췌본입니다. 원본 lib/app/services/gratitude_sharing_service.dart 는
+// 감사 나눔 피드 전반(리액션, 신고 등)을 다루며, 이 쇼케이스와 무관한 부분은
+// 뺐습니다. import 경로도 원본 레포 기준이라 이 파일만으로는 컴파일되지
+// 않습니다.
+//
+// 여기 남긴 것: Realtime Database presence 세션 등록/해제 + 동접자 수 watch
+// (개발 중 hot restart 로 인한 "유령 카운트" 이슈를 해결한 부분)
 
 // debug 빌드는 zDebug_grateful_room 하위로 격리 — prod 유저 presence 와 섞이지 않도록.
 static const _roomNode = kDebugMode
