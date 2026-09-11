@@ -3,8 +3,8 @@
 GratefulDay (하루감사) 는 하루 한 번 감사일기를 쓰고 다음날까지 나누는 개인 프로젝트입니다.
 기획 · UX · Flutter 앱 · Firebase 백엔드 · React 관리자 페이지까지 1인으로 개발했습니다.
 
-실제 서비스 레포는 출시를 앞두고 있어 **비공개**로 운영합니다. 이 레포는 그중 기술적으로
-고민하고 해결한 부분을, 실제 레포 디렉토리 구조를 그대로 유지한 채 필요한 코드만 추려서
+실제 서비스 레포는 출시를 앞두고 있어 **비공개**로 운영합니다. 이 레포는 그중 "어떻게
+구현했는가" 를 보여줄 수 있는 부분을, 실제 레포 디렉토리 구조를 그대로 유지한 채 추려서
 공유하기 위한 쇼케이스입니다.
 
 ## 담긴 내용
@@ -19,6 +19,10 @@ GratefulDay (하루감사) 는 하루 한 번 감사일기를 쓰고 다음날�
 | 6 | 서버 시간 기반 정책 | [`lib/app/services/app_flow_service.dart`](./lib/app/services/app_flow_service.dart) (클라) · [`functions/journals.js`](./functions/journals.js) §2 (서버) |
 | 7 | 다국어 국가 표시 폴백 | [`lib/app/l10n/country_display.dart`](./lib/app/l10n/country_display.dart) |
 | 8 | 관리자 편집 → 클라 즉시 반영 | [`functions/public_journal_index.js`](./functions/public_journal_index.js) |
+| 9 | AI 페르소나 얼굴 렌더링 (CustomPainter) | [`lib/app/widgets/ai_face_avatar.dart`](./lib/app/widgets/ai_face_avatar.dart) · [`lib/app/widgets/ai_persona.dart`](./lib/app/widgets/ai_persona.dart) |
+| 10 | 카드 스와이프 전환 애니메이션 | [`lib/app/screens/main/gratitude_sharing_screen.dart`](./lib/app/screens/main/gratitude_sharing_screen.dart) |
+| 11 | Riverpod provider 계층 구성 | [`lib/app/providers/app_providers.dart`](./lib/app/providers/app_providers.dart) |
+| 12 | Drift 스키마 · 마이그레이션 설계 | [`lib/app/db/app_database.dart`](./lib/app/db/app_database.dart) |
 
 ### 1. Firestore 읽기 비용 최적화
 
@@ -66,9 +70,32 @@ AI 페르소나처럼 국가를 고정하고 싶지 않은 계정엔 `WORLD` sen
 "무효화 알림" 채널 없이, 클라가 이미 갖고 있는 staleness 비교 로직(§3) 이 그대로
 재사용되어 다음에 그 entry 를 열 때 자동 재조회합니다.
 
+### 9. AI 페르소나 얼굴 렌더링
+
+AI 계정 아바타는 이미지 파일이 아니라 `CustomPainter` 로 매 프레임 직접 그립니다.
+`AnimationController` 의 phase 값으로 주기적인 눈 깜빡임과 미소를 만들고, 스타일별로
+팔레트/형태를 분기합니다 (`ahmugae`, `huckleberryFinn`, `blob`, `dewDrop`).
+
+### 10. 카드 스와이프 전환 애니메이션
+
+감사 나눔 피드는 `PageController` 의 현재 page 값(소수점 포함)을 매 프레임 읽어서,
+화면 중앙과의 거리로 이웃 카드들의 scale · opacity · blur · overlap offset 을 계산합니다.
+
+### 11. Riverpod provider 계층 구성
+
+서비스 DI(단순 `Provider`), 인증 상태에 의존하는 `StreamProvider` 체인, 캐시 우선
+프로필 조합, `family.autoDispose` 로 화면별 구독 생명주기를 관리하는 패턴을 씁니다.
+
+### 12. Drift 스키마 · 마이그레이션 설계
+
+Firestore 컬렉션을 목적별로 미러링하는 로컬 테이블 설계와, 스키마 버전이 16까지
+올라오는 동안 컬럼 추가/rename/타입 변경을 순차적으로 처리한 마이그레이션 이력입니다.
+
 ## 참고
 
 - 여기 담긴 코드는 실제 프로덕션 레포에서 **발췌**한 것으로, 그대로 컴파일/실행되지 않습니다
   (import 경로, 주변 클래스, 무관한 함수 등은 생략). 디렉토리 경로는 실제 레포와 동일합니다.
-- 시크릿 값, Firestore 보안 규칙 세부 조건, 결제 검증 로직 등 민감한 부분은 포함하지 않았습니다.
+- 시크릿 값, Firestore 보안 규칙 세부 조건, 결제 검증 로직, 초대/성장 게이지 같은 운영
+  규칙의 구체적인 수치·조건은 포함하지 않았습니다. "어떻게 구현했는가" 는 보여주되
+  "어떤 규칙으로 운영하는가" 는 가렸습니다.
 - 스택: Flutter · Dart · Riverpod · Drift (SQLite) / Firebase (Firestore · Cloud Functions v2 · Realtime Database) / React · TypeScript (관리자 페이지)
